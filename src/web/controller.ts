@@ -130,6 +130,32 @@ function optionsMenu(afterDocs: boolean): BotMessage {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// INACTIVITY WIN-BACK OFFER (placeholder - not wired to a scheduler here)
+//
+// Behaviour we want in production:
+//   If a conversation has had no user message for 30 minutes, send a one-time
+//   5% win-back discount (code COMEBACK5) to pull the user back to complete
+//   their application. Send it at most once per conversation.
+//
+// How it would be wired (NOT a cron in this demo):
+//   - On every inbound message, store `lastUserMessageAt = Date.now()` on the
+//     conversation and clear any pending win-back flag.
+//   - A scheduler (e.g. a WhatsApp-side delayed job, a Redis TTL key, or a
+//     serverless timer) fires 30 min later. If no newer user message arrived
+//     and the win-back was not already sent, send the template below and mark
+//     `winBackSent = true`.
+//   - Must respect the sentiment guard: never send to a user flagged negative.
+//
+// export function inactivityWinBack(): BotMessage {
+//   return {
+//     kind: "upsell",
+//     text: "Still thinking it over? Here is 5% off to finish your Dubai visa - use code COMEBACK5 in the Atlys app.",
+//     code: "COMEBACK5",
+//   };
+// }
+// ─────────────────────────────────────────────────────────────────────────────
+
 const DOC_DIMENSIONS = [
   "Your visa photo is taken live inside the Atlys app, so you do not need to upload one.",
   "",
@@ -201,9 +227,8 @@ export function handleTurn(text: string, state: ChatState): TurnResultMessages {
 
     if (elig.mmtNote) messages.push({ kind: "text", text: elig.mmtNote });
 
-    const up = maybeUpsell(state);
-    if (up) messages.push(up);
-
+    // Note: no upsell offer is pushed here on purpose - the price card is
+    // followed straight by the options menu to keep the selection step clean.
     messages.push(optionsMenu(false));
     return { messages, state };
   }
