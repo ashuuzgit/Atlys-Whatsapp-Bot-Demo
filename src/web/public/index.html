@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlys - WhatsApp Visa Assistant (Demo)</title>
+<style>
+  :root { --wa-bg:#e5ddd5; --wa-green:#075e54; --wa-teal:#128c7e; --wa-link:#00a5f4; --out:#dcf8c6; --in:#fff; }
+  * { box-sizing:border-box; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  body { margin:0; background:#111b21; display:flex; justify-content:center; min-height:100vh; }
+  .phone { width:100%; max-width:430px; height:100vh; display:flex; flex-direction:column; background:var(--wa-bg);
+           background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 20h40M20 0v40' stroke='%23d9d0c7' stroke-width='.5'/%3E%3C/svg%3E"); }
+  header { background:var(--wa-green); color:#fff; padding:12px 14px; display:flex; align-items:center; gap:12px; }
+  header .ava { width:40px; height:40px; border-radius:50%; background:var(--wa-teal); display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700; }
+  header .name { font-weight:600; font-size:16px; }
+  header .sub { font-size:12px; opacity:.85; }
+  #reset { background:rgba(255,255,255,.15); border:none; color:#fff; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  #reset:hover { background:rgba(255,255,255,.28); }
+  #chat { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .row { display:flex; }
+  .row.out { justify-content:flex-end; }
+  .bubble { max-width:82%; padding:8px 11px; border-radius:8px; font-size:14.5px; line-height:1.45; white-space:pre-wrap;
+            box-shadow:0 1px .5px rgba(0,0,0,.13); }
+  .in .bubble { background:var(--in); border-top-left-radius:0; }
+  .out .bubble { background:var(--out); border-top-right-radius:0; }
+  .bubble b, .bubble strong { font-weight:600; }
+  .card { background:#fff; }
+  .upsell { background:#fff; }
+  .upsell .tag { font-size:11px; font-weight:700; color:#54656f; text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:3px; }
+  .code { display:inline-block; margin-top:6px; background:#f0f2f5; color:#075e54; padding:3px 9px; border-radius:5px; font-weight:700; letter-spacing:1px; font-size:13px; }
+
+  /* WhatsApp REPLY BUTTONS - full width, stacked, thin divider, centered link-blue text */
+  .replywrap { max-width:82%; display:flex; flex-direction:column; }
+  .replywrap .msg { background:#fff; border-radius:8px 8px 0 0; padding:8px 11px; font-size:14.5px; line-height:1.45; box-shadow:0 1px .5px rgba(0,0,0,.13); }
+  .replybtn { background:#fff; border:none; border-top:1px solid #e9edef; color:var(--wa-link); font-size:14.5px; font-weight:500;
+              padding:11px; cursor:pointer; width:100%; text-align:center; }
+  .replybtn:first-of-type { border-top:1px solid #e9edef; }
+  .replywrap .replybtn:last-of-type { border-radius:0 0 8px 8px; }
+  .replybtn:hover { background:#f5f6f6; }
+
+  /* WhatsApp LIST message - body bubble + a "menu" button that opens a sheet of rows */
+  .listwrap { max-width:82%; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px .5px rgba(0,0,0,.13); }
+  .listwrap .msg { padding:8px 11px; font-size:14.5px; line-height:1.45; }
+  .listopen { border-top:1px solid #e9edef; color:var(--wa-link); font-weight:600; font-size:14.5px; padding:11px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .listopen:hover { background:#f5f6f6; }
+  .listsheet { border-top:1px solid #e9edef; }
+  .listrow { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border-bottom:1px solid #f0f1f2; cursor:pointer; }
+  .listrow:last-child { border-bottom:none; }
+  .listrow:hover { background:#f5f6f6; }
+  .listrow .rt { font-size:14.5px; color:#111b21; font-weight:500; }
+  .listrow .rd { font-size:12.5px; color:#667781; margin-top:2px; }
+  .listrow .radio { width:18px; height:18px; border-radius:50%; border:2px solid #b9c0c4; flex:0 0 auto; }
+
+  .cta { background:#fff; color:var(--wa-link); border:none; border-top:1px solid #e9edef; padding:11px; font-weight:600; font-size:14.5px; cursor:pointer; width:100%; border-radius:0 0 8px 8px; }
+  .ctawrap { max-width:82%; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px .5px rgba(0,0,0,.13); }
+  .ctawrap .msg { padding:8px 11px; font-size:14.5px; line-height:1.45; }
+
+  footer { display:flex; gap:8px; padding:10px; background:#f0f0f0; }
+  #input { flex:1; border:none; border-radius:22px; padding:11px 15px; font-size:14.5px; outline:none; }
+  #send { background:var(--wa-teal); border:none; color:#fff; width:44px; height:44px; border-radius:50%; font-size:18px; cursor:pointer; }
+  .typing { font-size:13px; color:#667; padding:2px 6px; }
+  .quick { padding:0 14px 8px; display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { background:#fff; color:var(--wa-teal); border:1px solid #cfe9e4; border-radius:18px; padding:8px 13px; font-size:13.5px; cursor:pointer; font-weight:500; box-shadow:0 1px .5px rgba(0,0,0,.1); }
+  .chip:hover { background:#f0faf8; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div class="ava">A</div>
+    <div style="flex:1"><div class="name">Atlys Visa Assistant</div><div class="sub">online</div></div>
+    <button id="reset" title="Restart demo" aria-label="Restart">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </header>
+  <div id="chat"></div>
+  <div class="quick" id="quick"></div>
+  <footer>
+    <input id="input" placeholder="Type a message" autocomplete="off" />
+    <button id="send">Send</button>
+  </footer>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const quick = document.getElementById('quick');
+let state = null;
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const md = s => esc(s).replace(/\*(.+?)\*/g,'<strong>$1</strong>');
+const scroll = () => { chat.scrollTop = chat.scrollHeight; };
+
+function addUser(text){
+  chat.insertAdjacentHTML('beforeend', `<div class="row out"><div class="bubble">${md(text)}</div></div>`);
+  scroll();
+}
+
+function renderBot(m){
+  if(m.kind === 'reply_buttons'){
+    const msg = m.text ? `<div class="msg">${md(m.text)}</div>` : '';
+    const btns = (m.buttons||[]).map(b => `<button class="replybtn" data-v="${esc(b.value)}">${esc(b.label)}</button>`).join('');
+    chat.insertAdjacentHTML('beforeend', `<div class="row in"><div class="replywrap">${msg}${btns}</div></div>`);
+  } else if(m.kind === 'list'){
+    const rows = (m.rows||[]).map(r =>
+      `<div class="listrow" data-v="${esc(r.value)}">
+         <div><div class="rt">${esc(r.label)}</div>${r.description?`<div class="rd">${esc(r.description)}</div>`:''}</div>
+         <div class="radio"></div>
+       </div>`).join('');
+    const id = 'ls'+Math.random().toString(36).slice(2,7);
+    chat.insertAdjacentHTML('beforeend',
+      `<div class="row in"><div class="listwrap">
+         <div class="msg">${md(m.text)}</div>
+         <div class="listopen" data-open="${id}">${esc(m.listButtonLabel||'View options')}</div>
+         <div class="listsheet" id="${id}" style="display:none">${rows}</div>
+       </div></div>`);
+  } else if(m.kind === 'cta'){
+    const btns = (m.buttons||[]).map(b => `<button class="cta" data-v="${esc(b.value)}">${esc(b.label)}</button>`).join('');
+    chat.insertAdjacentHTML('beforeend', `<div class="row in"><div class="ctawrap"><div class="msg">${md(m.text)}</div>${btns}</div></div>`);
+  } else if(m.kind === 'upsell'){
+    chat.insertAdjacentHTML('beforeend',
+      `<div class="row in"><div class="bubble upsell"><span class="tag">Offer for you</span>${md(m.text)}${
+        m.code ? `<br><span class="code">${esc(m.code)}</span>` : ''}</div></div>`);
+  } else {
+    const cls = m.kind === 'card' ? 'bubble card' : 'bubble';
+    chat.insertAdjacentHTML('beforeend', `<div class="row in"><div class="${cls}">${md(m.text)}</div></div>`);
+  }
+  scroll();
+}
+
+function bind(){
+  chat.querySelectorAll('[data-open]').forEach(el=>{
+    if(el.dataset.bound) return; el.dataset.bound = 1;
+    el.addEventListener('click', ()=>{ const s = document.getElementById(el.dataset.open); if(s) s.style.display = s.style.display==='none'?'block':'none'; scroll(); });
+  });
+  chat.querySelectorAll('[data-v]').forEach(el=>{
+    if(el.dataset.bound) return; el.dataset.bound = 1;
+    el.addEventListener('click', ()=>{
+      const v = el.dataset.v;
+      if(v === 'app'){ addUser('Opening Atlys'); window.open('https://www.atlys.com/en-IN/visa/dubai-visa','_blank'); renderBot({kind:'text',text:'Redirecting you to Atlys to complete your Dubai visa at atlys.com'}); return; }
+      const label = el.querySelector('.rt')?.textContent || el.textContent;
+      send(v, label);
+    });
+  });
+}
+
+async function typing(fn){
+  const t = document.createElement('div'); t.className='typing'; t.textContent='typing';
+  chat.appendChild(t); scroll();
+  await new Promise(r=>setTimeout(r, 450));
+  t.remove(); fn();
+}
+
+async function send(value, label){
+  addUser(label || value);
+  input.value='';
+  const res = await fetch('/api/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:value, state})});
+  const data = await res.json();
+  state = data.state;
+  for(const m of data.messages){ await typing(()=>renderBot(m)); }
+  bind();
+}
+
+document.getElementById('send').onclick = ()=>{ if(input.value.trim()) send(input.value.trim()); };
+input.addEventListener('keydown', e=>{ if(e.key==='Enter' && input.value.trim()) send(input.value.trim()); });
+
+const PROMPTS = [
+  'Hi',
+  'I want to apply for a Dubai visa',
+];
+function renderQuick(){
+  quick.innerHTML='';
+  PROMPTS.forEach(q=>{ const c=document.createElement('div'); c.className='chip'; c.textContent=q; c.onclick=()=>send(q); quick.appendChild(c); });
+}
+
+async function boot(){
+  chat.innerHTML='';
+  const data = await (await fetch('/api/init')).json();
+  state = data.state;
+  for(const m of data.messages){ await typing(()=>renderBot(m)); }
+  bind(); renderQuick();
+}
+
+document.getElementById('reset').onclick = boot;
+boot();
+</script>
+</body>
+</html>

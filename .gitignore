@@ -1,0 +1,19 @@
+# Dependencies (Render/Railway reinstall from package.json)
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Runtime logs and generated data
+web-server*.log
+offers_log.jsonl
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
