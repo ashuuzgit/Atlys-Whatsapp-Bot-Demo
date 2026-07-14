@@ -8,7 +8,7 @@
 //   cta            -> template with a URL button
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { DUBAI_VISAS } from "../data/visas.js";
+import { DUBAI_VISAS, DUBAI_DOCUMENTS } from "../data/visas.js";
 import { DUBAI_FAQS, pickFaqs, matchFaq } from "../data/faq.js";
 import { checkEligibility } from "../engine/eligibility.js";
 import { getUpsellOffer } from "../engine/upsell.js";
@@ -110,6 +110,40 @@ function maybeUpsell(state: ChatState): BotMessage | null {
   return { kind: "upsell", text: res.offer.pitch, code: res.offer.code };
 }
 
+// The application hub: one small menu shown after the price, and again after
+// documents. Option 1 changes once documents have been shown.
+function optionsMenu(afterDocs: boolean): BotMessage {
+  return {
+    kind: "reply_buttons",
+    text: afterDocs ? "Anything else on this application?" : "How can I help you with this application?",
+    buttons: afterDocs
+      ? [
+          { label: "Photo and document dimensions", value: "doc_dimensions" },
+          { label: "Anything else I can help with", value: "more_questions" },
+          { label: "Complete application in Atlys app", value: "app" },
+        ]
+      : [
+          { label: "Documents required", value: "docs_required" },
+          { label: "Anything else I can help with", value: "more_questions" },
+          { label: "Complete application in Atlys app", value: "app" },
+        ],
+  };
+}
+
+const DOC_DIMENSIONS = [
+  "Your visa photo is taken live inside the Atlys app, so you do not need to upload one.",
+  "",
+  "*Passport photo standard:*",
+  "- Size: 35 mm x 45 mm",
+  "- Head height: 32 mm to 36 mm",
+  "- Background: plain white",
+  "- Colour photo, face clear, neutral expression",
+  "",
+  "*Passport scan:*",
+  "- Clear colour images of the front and back pages",
+  "- All four edges visible, no glare or blur",
+].join("\n");
+
 export function handleTurn(text: string, state: ChatState): TurnResultMessages {
   const messages: BotMessage[] = [];
   const raw = text.trim();
@@ -135,11 +169,12 @@ export function handleTurn(text: string, state: ChatState): TurnResultMessages {
     return { messages: opening(), state };
   }
 
-  // Button: user selected a specific visa from the list.
+  // Button: user selected a specific visa. Send ONLY the price card (+ offer),
+  // then a small menu - do not dump docs, redirect and questions all at once.
   if (t.startsWith("select:")) {
     const visaId = raw.split(":")[1];
     state.slots.visaId = visaId;
-    state.stage = "chosen";
+    state.stage = "faq";
 
     const elig = checkEligibility({
       passportNationality: state.slots.passportNationality ?? "india",
@@ -166,23 +201,27 @@ export function handleTurn(text: string, state: ChatState): TurnResultMessages {
 
     if (elig.mmtNote) messages.push({ kind: "text", text: elig.mmtNote });
 
-    messages.push({
-      kind: "text",
-      text: "*Documents you will need:*\n" + elig.requiredDocuments.map((d) => "- " + d).join("\n"),
-    });
-
     const up = maybeUpsell(state);
     if (up) messages.push(up);
 
-    messages.push({
-      kind: "cta",
-      text: "Ready to continue? Complete your application in the Atlys app.",
-      buttons: [{ label: "Open in Atlys app", value: "app" }],
-    });
+    messages.push(optionsMenu(false));
+    return { messages, state };
+  }
 
-    // Ask if there is anything else, with the common questions for this category.
-    messages.push(followUp(visaId));
-    state.stage = "faq";
+  // Menu: Documents required -> send docs, then the after-docs menu.
+  if (t === "docs_required") {
+    messages.push({
+      kind: "text",
+      text: "*Documents you will need:*\n" + DUBAI_DOCUMENTS.map((d) => "- " + d).join("\n"),
+    });
+    messages.push(optionsMenu(true));
+    return { messages, state };
+  }
+
+  // Menu: Photo and document dimensions -> explain live photo + sizes.
+  if (t === "doc_dimensions") {
+    messages.push({ kind: "text", text: DOC_DIMENSIONS });
+    messages.push(optionsMenu(true));
     return { messages, state };
   }
 

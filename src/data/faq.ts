@@ -1,10 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Dubai tourist visa FAQ knowledge base (prototype mock).
-// Used for: (a) the "anything else?" follow-up options, and
-//           (b) answering a user's own typed question, falling back to an agent.
-// All answers are illustrative, not live Atlys policy.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface FaqEntry {
   id: string;
   q: string;
