@@ -19,6 +19,8 @@ export interface ChatState {
   slots: Slots;
   shownOffers: string[];
   cameViaMmt?: boolean;
+  docsShown?: boolean;       // "Documents required" already used
+  dimensionsShown?: boolean; // "Photo and document dimensions" already used
 }
 
 export interface BotRow {
@@ -110,23 +112,23 @@ function maybeUpsell(state: ChatState): BotMessage | null {
   return { kind: "upsell", text: res.offer.pitch, code: res.offer.code };
 }
 
-// The application hub: one small menu shown after the price, and again after
-// documents. Option 1 changes once documents have been shown.
-function optionsMenu(afterDocs: boolean): BotMessage {
+// The application hub. The document-related option advances as it is used:
+//   not shown yet      -> "Documents required"
+//   docs shown         -> "Photo and document dimensions"
+//   dimensions shown   -> dropped entirely (only the remaining two options)
+function optionsMenu(state: ChatState): BotMessage {
+  const buttons: { label: string; value: string }[] = [];
+  if (!state.docsShown) {
+    buttons.push({ label: "Documents required", value: "docs_required" });
+  } else if (!state.dimensionsShown) {
+    buttons.push({ label: "Photo and document dimensions", value: "doc_dimensions" });
+  }
+  buttons.push({ label: "Anything else I can help with", value: "more_questions" });
+  buttons.push({ label: "Complete application in Atlys app", value: "app" });
   return {
     kind: "reply_buttons",
-    text: afterDocs ? "Anything else on this application?" : "How can I help you with this application?",
-    buttons: afterDocs
-      ? [
-          { label: "Photo and document dimensions", value: "doc_dimensions" },
-          { label: "Anything else I can help with", value: "more_questions" },
-          { label: "Complete application in Atlys app", value: "app" },
-        ]
-      : [
-          { label: "Documents required", value: "docs_required" },
-          { label: "Anything else I can help with", value: "more_questions" },
-          { label: "Complete application in Atlys app", value: "app" },
-        ],
+    text: "How can I help you with this application?",
+    buttons,
   };
 }
 
@@ -229,24 +231,26 @@ export function handleTurn(text: string, state: ChatState): TurnResultMessages {
 
     // Note: no upsell offer is pushed here on purpose - the price card is
     // followed straight by the options menu to keep the selection step clean.
-    messages.push(optionsMenu(false));
+    messages.push(optionsMenu(state));
     return { messages, state };
   }
 
-  // Menu: Documents required -> send docs, then the after-docs menu.
+  // Menu: Documents required -> send docs once, then the updated menu.
   if (t === "docs_required") {
     messages.push({
       kind: "text",
       text: "*Documents you will need:*\n" + DUBAI_DOCUMENTS.map((d) => "- " + d).join("\n"),
     });
-    messages.push(optionsMenu(true));
+    state.docsShown = true;
+    messages.push(optionsMenu(state));
     return { messages, state };
   }
 
-  // Menu: Photo and document dimensions -> explain live photo + sizes.
+  // Menu: Photo and document dimensions -> explain live photo + sizes once.
   if (t === "doc_dimensions") {
     messages.push({ kind: "text", text: DOC_DIMENSIONS });
-    messages.push(optionsMenu(true));
+    state.dimensionsShown = true;
+    messages.push(optionsMenu(state));
     return { messages, state };
   }
 
