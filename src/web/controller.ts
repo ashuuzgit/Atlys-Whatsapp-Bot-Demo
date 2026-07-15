@@ -21,6 +21,7 @@ export interface ChatState {
   cameViaMmt?: boolean;
   docsShown?: boolean;       // "Documents required" already used
   dimensionsShown?: boolean; // "Photo and document dimensions" already used
+  endNudgeSent?: boolean;    // the one-time "continue on Atlys" closing nudge was sent
 }
 
 export interface BotRow {
@@ -158,6 +159,27 @@ function optionsMenu(state: ChatState): BotMessage {
 // }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Matched as the WHOLE message (after stripping punctuation), never as a
+// substring - short generic tokens like "ok" or "k" would otherwise false-
+// positive on any longer message that happens to contain those letters
+// (e.g. "Pakistani" contains "k", "book" contains "ok"). Every phrase below
+// is something a user would plausibly send as a complete standalone message.
+const CLOSING_PHRASES = new Set([
+  "bye", "goodbye", "thankyou", "thank you", "thanks", "thnx", "tysm",
+  "no thats all", "no that's all", "thats it", "that's it", "nothing else",
+  "im good", "i am good", "i am fine", "i'm good", "all good",
+  "no more questions", "thats all i needed",
+  "ok thanks", "alright thanks", "no im fine", "no i'm fine",
+  "nope im good", "nope i'm good", "nope all good", "nope thats all",
+  "nope that's all", "nope nothing else", "nope im fine", "nope i'm fine",
+  "ok", "okay", "alright", "ok thank you", "okay thanks", "okay thank you",
+  "k",
+]);
+function isClosingMessage(t: string): boolean {
+  const normalized = t.trim().replace(/[^\w\s']/g, "").replace(/\s+/g, " ");
+  return CLOSING_PHRASES.has(normalized);
+}
+
 const DOC_DIMENSIONS = [
   "Your visa photo is taken live inside the Atlys app, so you do not need to upload one.",
   "",
@@ -197,8 +219,25 @@ export function handleTurn(text: string, state: ChatState): TurnResultMessages {
     return { messages: opening(), state };
   }
 
-  // Button: user selected a specific visa. Send ONLY the price card (+ offer),
-  // then a small menu - do not dump docs, redirect and questions all at once.
+  if (isClosingMessage(t)) {
+    if (!state.endNudgeSent) {
+      state.endNudgeSent = true;
+      messages.push({
+        kind: "text",
+        text: "Glad I could help. Whenever you are ready, you can finish your Dubai visa application in the Atlys app.",
+      });
+      messages.push({
+        kind: "cta",
+        text: "",
+        buttons: [{ label: "Continue on Atlys", value: "app" }],
+      });
+    } else {
+      messages.push({ kind: "text", text: "You are welcome. Have a great trip." });
+    }
+    return { messages, state };
+  }
+
+  //not dump docs
   if (t.startsWith("select:")) {
     const visaId = raw.split(":")[1];
     state.slots.visaId = visaId;

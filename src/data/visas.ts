@@ -23,7 +23,7 @@ export const DUBAI_VISAS: VisaOption[] = [
     priceInr: 6500,
     standardProcessingDays: 2,
     expressAvailable: true,
-    expressProcessingHours: 48,
+    expressProcessingHours: 32,
     expressAddonInr: 3000,
   },
   {
@@ -34,7 +34,7 @@ export const DUBAI_VISAS: VisaOption[] = [
     priceInr: 9500,
     standardProcessingDays: 2,
     expressAvailable: true,
-    expressProcessingHours: 48,
+    expressProcessingHours: 32,
     expressAddonInr: 3000,
   },
   {
@@ -45,7 +45,7 @@ export const DUBAI_VISAS: VisaOption[] = [
     priceInr: 11000,
     standardProcessingDays: 2,
     expressAvailable: true,
-    expressProcessingHours: 48,
+    expressProcessingHours: 32,
     expressAddonInr: 3500,
   },
   {
@@ -56,7 +56,7 @@ export const DUBAI_VISAS: VisaOption[] = [
     priceInr: 14500,
     standardProcessingDays: 2,
     expressAvailable: true,
-    expressProcessingHours: 48,
+    expressProcessingHours: 32,
     expressAddonInr: 3500,
   },
   {
@@ -67,7 +67,7 @@ export const DUBAI_VISAS: VisaOption[] = [
     priceInr: 55000,
     standardProcessingDays: 2,
     expressAvailable: true,
-    expressProcessingHours: 48,
+    expressProcessingHours: 32,
     expressAddonInr: 4000,
   },
 ];

@@ -59,10 +59,11 @@ function candidateOffers(slots: Slots): Offer[] {
   const visaSelectedExpress = visa?.expressAvailable === true;
   if ((urgent && (!visa || visa.expressAvailable)) || visaSelectedExpress) {
     const addon = visa?.expressAddonInr ?? 3000;
+    const hours = visa?.expressProcessingHours ?? 32;
     offers.push({
       id: "express_processing",
       label: "Express processing",
-      pitch: `Get your Dubai visa delivered in under 48 hours, or no fee. Add express for ₹${addon}.`,
+      pitch: `Get your Dubai visa delivered in under ${hours} hours, or the express fee is waived. Add express for ₹${addon}.`,
       priceDeltaInr: addon,
       baseConversion: 0.55,
       baseMargin: 0.8, // highest margin
